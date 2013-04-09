@@ -12,11 +12,6 @@ import random
 from pymongo import Connection
 
 
-def generate_random_name():
-    vName = ''.join([random.choice('abcdefghijklmnoprstuvwyxzABCDEFGHIJKLMNOPRSTUVWXYZ') for i in range(8)])
-    return vName
-
-
 def generate_random_number():
     vNumber = ''.join([random.choice('0123456789') for i in range(4)])
     return vNumber
@@ -34,12 +29,24 @@ def make_connection():
 def insert_item(pConnection):
     i = 0
     for i in range(10):
-        vCollection = {
-            "produto" : generate_random_name(),
-            "nome_fantasia" : generate_random_name(),
-            "preço": float(generate_random_number()),
-            "custo" : float(generate_random_number())
-        }
+        if( 0 <= i <= 4 ):
+            vCollection = {
+                "nota_fiscal" : "000" + str("{0}".format(i)),
+                "cliente" : "clienteABC",
+                "valor_venda": float(generate_random_number())
+            }
+        elif( 5 <= i <= 8 ):
+            vCollection = {
+                "nota_fiscal" : "000" + str("{0}".format(i)),
+                "cliente" : "clienteDEF",
+                "valor_venda": float(generate_random_number())
+            }
+        else:
+            vCollection = {
+                "nota_fiscal" : "000" + str("{0}".format(i)),
+                "cliente" : "clienteGHI",
+                "valor_venda": float(generate_random_number())
+            }
 
         pConnection.produtos.insert(vCollection)
 
@@ -57,16 +64,10 @@ def list_itens(pConnection):
 
 def delete_itens(pConnection):
     vCollection = pConnection["produtos"]
-    vDocuments = vCollection.find()
+    vDocuments = vCollection.find({})
     for i in vDocuments:
         pConnection["produtos"].remove(i)
 
-
-def delete_item_by_name(pConnection, pName):
-    vCollection = pConnection["produtos"]
-    vDocuments = vCollection.find({"produto" : pName})
-    for i in vDocuments:
-        print (i)
 
 
 def create_table_index(pConnection):
@@ -74,10 +75,10 @@ def create_table_index(pConnection):
     pConnection.produtos.create_index([("produto", ASCENDING)])
 
 
-def create_map_function(pConnection):
+#def create_map_function(pConnection):
 
 
-def create_reduce_function(pConnection):
+#def create_reduce_function(pConnection):
 
 
 def main():
@@ -87,7 +88,6 @@ def main():
    create_table_index(vConnection)
    list_itens(vConnection)
 
-   print("removendo produtos...")
    delete_itens(vConnection)
    list_itens(vConnection)
 
