@@ -6,6 +6,7 @@ import urllib
 import json
 import pymongo
 import oauth2 as oauth
+import datetime
 
 MONGO_PORT = 27017
 
@@ -13,11 +14,12 @@ MONGO_HOST = "localhost"
 
 USER_AGENT = 'TwitterMining 1.0'
 
-API_ENDPOINT_URL = 'https://stream.twitter.com/1.1/statuses/filter.json'
-
 POST_PARAMS = {'include_entities': 0,
                'stall_warning': 'true',
-               'track': 'globo'}
+               'track': 'globo,sbt,record,gazeta,mtv',
+               'language': 'pt'}
+
+API_ENDPOINT_URL = 'https://stream.twitter.com/1.1/statuses/filter.json'
 
 OAUTH_KEYS = {'consumer_key': '',
               'consumer_secret': '',
@@ -51,6 +53,12 @@ class TweetStream:
         self.conn.setopt(pycurl.POSTFIELDS, urllib.urlencode(POST_PARAMS))
         self.conn.setopt(pycurl.HTTPHEADER, ['Host: stream.twitter.com', 'Authorization: %s' % self.get_oauth_header()])
 
+    def release_database(self):
+        self.connection = pymongo.Connection(MONGO_HOST, MONGO_PORT)
+        self.db = self.connection.twitterstream
+        collection = self.db['tweets']
+        collection.drop()
+
     def setup_database_connection(self):
         self.connection = pymongo.Connection(MONGO_HOST, MONGO_PORT)
         self.db = self.connection.twitterstream
@@ -76,6 +84,7 @@ class TweetStream:
 
     def handle_tweet(self, data):
         self.buffer += data
+        now = datetime.datetime.now()
         if data.endswith('\r\n') and self.buffer.strip():
             message = json.loads(self.buffer)
             self.buffer = ''
@@ -87,16 +96,15 @@ class TweetStream:
             elif message.get('warning'):
                 print 'Got warning: %s' % message['warning'].get('message')
             else:
-                try:
-                    self.db.tweets.save(message)
-                except:
-                    print 'Database Error: Cannot insert tweet'
+                self.db.tweets.save(message)
+                print now.strftime("%Y-%m-%d %H:%M")
                 print 'Got tweet with text: %s' % message.get('text')
 
 
 if __name__ == '__main__':
     ts = TweetStream()
     ts.setup_connection()
+    ts.release_database()
     ts.setup_database_connection()
     ts.start()
 
